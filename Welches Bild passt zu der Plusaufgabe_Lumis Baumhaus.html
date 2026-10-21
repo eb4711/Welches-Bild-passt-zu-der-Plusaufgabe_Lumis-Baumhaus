@@ -1,0 +1,912 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Lumis Baumhaus- Bildersuche</title>
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Google Font: Teachers (Mit nativer Grundschul-4) -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Teachers:ital,wght@0,400..800;1,400..800&display=swap" rel="stylesheet">
+    <!-- Canvas-Confetti library -->
+    <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
+
+    <style>
+        * {
+            font-family: 'Teachers', sans-serif;
+            touch-action: manipulation;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        body {
+            background: linear-gradient(135deg, #022c22 0%, #064e3b 40%, #111827 85%, #0f172a 100%);
+            background-attachment: fixed;
+            color: #f8fafc;
+            min-height: 100vh;
+            overflow-x: hidden;
+        }
+
+        button, input {
+            touch-action: manipulation;
+            cursor: pointer !important;
+        }
+
+        /* Custom Animations */
+        @keyframes bounce-gentle {
+            0%, 100% { transform: translateY(0); }
+            50% { transform: translateY(-8px); }
+        }
+
+        @keyframes chest-shake {
+            0% { transform: rotate(0deg); }
+            20% { transform: rotate(-8deg); }
+            40% { transform: rotate(8deg); }
+            60% { transform: rotate(-8deg); }
+            80% { transform: rotate(8deg); }
+            100% { transform: rotate(0deg); }
+        }
+
+        .animate-bounce-gentle {
+            animation: bounce-gentle 2.5s infinite ease-in-out;
+        }
+
+        .animate-shake {
+            animation: chest-shake 0.5s ease-in-out;
+        }
+
+        /* Hide Scrollbar for smooth scroll */
+        .no-scrollbar::-webkit-scrollbar {
+            display: none;
+        }
+        .no-scrollbar {
+            -ms-overflow-style: none;
+            scrollbar-width: none;
+        }
+
+        /* ECHTER PORZELLANTELLER DESIGN */
+        .real-plate {
+            background: radial-gradient(circle, #ffffff 55%, #e2e8f0 75%, #cbd5e1 95%, #94a3b8 100%);
+            border: 6px solid #64748b;
+            box-shadow: 0 8px 20px rgba(0,0,0,0.3), inset 0 0 15px rgba(0,0,0,0.12);
+        }
+
+        /* ECHTE HAND DESIGN (Handfläche + Handgelenk/Ärmel) */
+        .real-hand-bg {
+            background: radial-gradient(circle, #fde68a 0%, #fcd34d 60%, #f59e0b 100%);
+            border: 5px solid #d97706;
+            box-shadow: 0 8px 20px rgba(0,0,0,0.25), inset 0 0 12px rgba(180, 83, 9, 0.2);
+        }
+    </style>
+</head>
+<body class="flex flex-col min-h-screen justify-between">
+
+    <!-- TOP HEADER NAVIGATION -->
+    <header class="bg-emerald-950/95 border-b-2 border-amber-400/40 p-2 sm:p-3 sticky top-0 z-40 shadow-xl backdrop-blur-md">
+        <div class="max-w-6xl mx-auto flex justify-between items-center">
+            
+            <!-- Home Button (🏠) -->
+            <button id="homeBtn" onclick="handleHomeClick()" class="flex items-center space-x-2 text-2xl sm:text-3xl font-bold text-amber-300 hover:text-amber-200 transition-transform active:scale-95 bg-emerald-900/80 px-4 py-2 rounded-2xl border-2 border-amber-400/40 shadow-md" title="Menü / Pause">
+                <span>🏠</span>
+            </button>
+
+            <!-- Score Display (⭐ Stars/Points) -->
+            <div id="scoreBadge" class="flex items-center space-x-2 bg-amber-400/20 border-2 border-amber-400/80 px-5 py-2 rounded-full shadow-inner">
+                <span class="text-3xl animate-bounce-gentle">⭐</span>
+                <span id="scoreText" class="text-amber-300 font-extrabold text-2xl sm:text-3xl drop-shadow">0</span>
+                <span class="text-sm text-amber-200 font-black hidden sm:inline">Punkte</span>
+            </div>
+
+            <!-- Header Right Controls: Trophies & Mute Toggle -->
+            <div class="flex items-center space-x-2 sm:space-x-4">
+                <!-- Trophy Gallery Button -->
+                <button id="trophyModalBtn" onclick="openTrophyGallery()" class="relative p-2.5 rounded-2xl bg-emerald-900/80 border-2 border-amber-400/40 text-3xl hover:bg-emerald-800 transition-transform active:scale-95 shadow-md" title="Trophäen-Sammlung">
+                    🏆
+                    <span id="trophyCountBadge" class="absolute -top-1.5 -right-1.5 bg-amber-400 text-slate-950 text-xs font-black w-6 h-6 rounded-full flex items-center justify-center border-2 border-slate-900 shadow">0</span>
+                </button>
+
+                <!-- Sound Toggle Button -->
+                <button id="muteBtn" onclick="toggleMute()" class="p-2.5 rounded-2xl bg-emerald-900/80 border-2 border-amber-400/40 text-3xl hover:bg-emerald-800 transition-transform active:scale-95 shadow-md" title="Ton An/Aus">
+                    <span id="muteIcon" class="drop-shadow">🔊</span>
+                </button>
+            </div>
+        </div>
+    </header>
+
+    <!-- MAIN CONTAINER WITH SCREENS -->
+    <main class="flex-grow flex flex-col justify-start items-center p-2 sm:p-5 max-w-6xl w-full mx-auto relative z-10">
+
+        <!-- ========================================== -->
+        <!-- SCREEN 1: START SCREEN                     -->
+        <!-- ========================================== -->
+        <section id="startScreen" class="w-full flex flex-col items-center text-center space-y-6 py-6 my-auto relative z-20">
+            <!-- ECHTES, WUNDERSCHÖNES BAUMHAUS IM BAUM (SVG) -->
+            <div class="relative flex justify-center items-center my-2">
+                <div class="relative flex items-center justify-center filter drop-shadow-[0_20px_30px_rgba(0,0,0,0.7)]">
+                    <svg width="280" height="240" viewBox="0 0 280 240" fill="none" xmlns="http://www.w3.org/2000/svg" class="w-64 h-56 sm:w-80 sm:h-64">
+                        <!-- Baumstamm unten -->
+                        <rect x="125" y="140" width="30" height="90" rx="4" fill="#78350F" stroke="#451A03" stroke-width="4"/>
+                        <!-- Holzleiter am Stamm -->
+                        <path d="M132 155H148 M132 175H148 M132 195H148 M132 215H148" stroke="#FDE68A" stroke-width="3" stroke-linecap="round"/>
+                        <line x1="132" y1="145" x2="132" y2="225" stroke="#D97706" stroke-width="3"/>
+                        <line x1="148" y1="145" x2="148" y2="225" stroke="#D97706" stroke-width="3"/>
+
+                        <!-- Dichte Baumkrone (Blätter) -->
+                        <circle cx="90" cy="90" r="55" fill="#059669"/>
+                        <circle cx="190" cy="90" r="55" fill="#059669"/>
+                        <circle cx="140" cy="60" r="60" fill="#10B981"/>
+                        <circle cx="70" cy="130" r="45" fill="#047857"/>
+                        <circle cx="210" cy="130" r="45" fill="#047857"/>
+
+                        <!-- ECHTES BAUMHAUS MITTEN IM BAUM -->
+                        <rect x="80" y="130" width="120" height="12" rx="3" fill="#B45309" stroke="#78350F" stroke-width="3"/>
+                        <rect x="95" y="75" width="90" height="58" rx="4" fill="#D97706" stroke="#78350F" stroke-width="4"/>
+                        <line x1="95" y1="92" x2="185" y2="92" stroke="#B45309" stroke-width="2"/>
+                        <line x1="95" y1="110" x2="185" y2="110" stroke="#B45309" stroke-width="2"/>
+
+                        <!-- Fenster -->
+                        <rect x="110" y="88" width="24" height="24" rx="4" fill="#FEF08A" stroke="#78350F" stroke-width="3"/>
+                        <line x1="122" y1="88" x2="122" y2="112" stroke="#78350F" stroke-width="2"/>
+                        <line x1="110" y1="100" x2="134" y2="100" stroke="#78350F" stroke-width="2"/>
+
+                        <!-- Tür -->
+                        <rect x="148" y="90" width="22" height="43" rx="3" fill="#78350F"/>
+                        <circle cx="154" cy="112" r="2" fill="#FDE68A"/>
+
+                        <!-- Dach -->
+                        <polygon points="140,35 85,77 195,77" fill="#DC2626" stroke="#991B1B" stroke-width="4"/>
+
+                        <!-- Vordere Blätter -->
+                        <circle cx="75" cy="85" r="20" fill="#34D399" opacity="0.9"/>
+                        <circle cx="205" cy="85" r="20" fill="#34D399" opacity="0.9"/>
+
+                        <!-- Eule Lumi auf Ast -->
+                        <text x="180" y="50" font-size="32">🦉</text>
+                    </svg>
+                </div>
+                
+                <div class="absolute -bottom-2 bg-amber-400 text-slate-950 font-black px-4 py-1.5 rounded-full text-sm shadow-xl transform rotate-2 border-2 border-white">
+                    Lumis Baumhaus 🌳🏡
+                </div>
+            </div>
+
+            <!-- Title -->
+            <div class="space-y-2 max-w-lg pt-2">
+                <h1 class="text-3xl sm:text-5xl font-black text-amber-300 drop-shadow-[0_4px_8px_rgba(0,0,0,0.6)] tracking-wide">
+                    Lumis Baumhaus- Bildersuche
+                </h1>
+                <p class="text-sm sm:text-base text-emerald-200 font-bold">Finde das richtige Bild zur Plusaufgabe!</p>
+            </div>
+
+            <!-- Big Play Button -->
+            <button id="startPlayBtn" onclick="handleStartPlay()" class="w-full max-w-sm py-5 px-10 bg-gradient-to-r from-amber-400 via-amber-500 to-amber-600 hover:from-amber-300 hover:to-amber-500 text-slate-950 font-black text-3xl sm:text-4xl rounded-3xl shadow-2xl border-b-8 border-amber-800 transition-transform active:scale-95 flex items-center justify-center space-x-4 tracking-wider relative z-30 cursor-pointer">
+                <span>SPIELEN</span>
+                <span class="text-4xl sm:text-5xl">🚀</span>
+            </button>
+
+            <!-- Save Code Loader Area -->
+            <div class="bg-emerald-950/90 border-2 border-amber-400/40 p-4 rounded-3xl max-w-xs w-full space-y-2 shadow-xl relative z-30">
+                <label class="block text-xs font-bold text-amber-200">Speicher-Code laden:</label>
+                <div class="flex space-x-2">
+                    <input type="text" id="codeInput" placeholder="M-XXXX" class="w-full bg-slate-900 border border-amber-400/50 rounded-xl px-3 py-2 text-center text-amber-300 font-extrabold uppercase placeholder-slate-500 focus:outline-none focus:border-amber-400 text-lg">
+                    <button id="loadCodeBtn" onclick="handleLoadCode()" class="bg-amber-400 hover:bg-amber-300 text-slate-950 font-black px-4 py-2 rounded-xl transition-all shadow active:scale-95">
+                        Laden
+                    </button>
+                </div>
+            </div>
+        </section>
+
+        <!-- ========================================================= -->
+        <!-- SCREEN 2: LEVEL MAP ("BAUMHAUS-PFAD")                     -->
+        <!-- ========================================================= -->
+        <section id="pathScreen" class="w-full hidden flex-col items-center space-y-4 py-2 relative z-20">
+            <!-- Path Banner -->
+            <div class="w-full flex justify-between items-center bg-emerald-950 border-2 border-amber-400/40 px-5 py-3 rounded-3xl shadow-xl">
+                <div>
+                    <h2 class="text-2xl font-black text-amber-300 drop-shadow">Der Baumhaus-Pfad 🌳🏡</h2>
+                    <p class="text-xs sm:text-sm text-emerald-200 font-bold">Wähle ein freigeschaltetes Level!</p>
+                </div>
+                <button id="continueLevelBtn" onclick="startLevel(gameState.maxUnlockedLevel)" class="bg-amber-400 hover:bg-amber-300 text-slate-950 font-black text-base px-5 py-2.5 rounded-2xl shadow-lg transition-transform active:scale-95 border-b-4 border-amber-700">
+                    Weiter ▶
+                </button>
+            </div>
+
+            <!-- Winding Path Container -->
+            <div id="pathContainer" class="w-full bg-emerald-950/90 border-2 border-amber-400/30 rounded-3xl p-5 sm:p-8 relative overflow-y-auto max-h-[68vh] no-scrollbar shadow-2xl flex flex-col items-center space-y-6">
+                <!-- Dynamic Level Nodes Generated Here -->
+            </div>
+        </section>
+
+        <!-- ======================================================== -->
+        <!-- SCREEN 3: TASK STAGE                                      -->
+        <!-- ======================================================== -->
+        <section id="taskScreen" class="w-full hidden flex-col items-center space-y-4 pt-1 relative z-20">
+            
+            <!-- Compact Header Bar -->
+            <div class="w-full flex justify-between items-center bg-emerald-950/90 px-4 py-2.5 rounded-3xl border-2 border-amber-400/40 text-sm shadow-md">
+                
+                <button id="readStoryBtn" onclick="readTaskStory()" class="flex items-center justify-center p-2.5 rounded-2xl bg-amber-400/20 border-2 border-amber-400 text-3xl shadow-md active:scale-95 transition-transform" title="Frage vorlesen">
+                    <span class="drop-shadow">🔊</span>
+                </button>
+
+                <!-- Level Label & Progress Dots -->
+                <div class="flex flex-col items-center space-y-1">
+                    <span id="levelLabel" class="text-amber-300 font-black text-lg sm:text-xl drop-shadow">Level 1 - Aufgabe 1/6</span>
+                    <div class="flex space-x-2" id="taskProgressDots">
+                        <!-- Progress dots generated dynamically -->
+                    </div>
+                </div>
+                
+                <!-- Back to Path Button on Right -->
+                <button id="backToPathBtn" onclick="handleBackToPath()" class="text-xs sm:text-sm font-black text-emerald-100 hover:text-white bg-emerald-900 px-4 py-2.5 rounded-2xl border border-amber-400/40 shadow active:scale-95">
+                    🗺️ Pfad
+                </button>
+            </div>
+
+            <!-- TASK MAIN DISPLAY: THE PLUS EQUATION -->
+            <div class="w-full flex flex-col items-center space-y-2">
+                <div class="bg-amber-100 border-4 border-amber-400 rounded-3xl py-3 px-10 sm:px-16 shadow-2xl flex items-center justify-center space-x-4 text-slate-950">
+                    <span id="taskEquationText" class="text-5xl sm:text-7xl font-black drop-shadow-sm tracking-wider">
+                        3 + 2 = 5
+                    </span>
+                </div>
+                <p class="text-amber-300 font-black text-xl sm:text-2xl text-center drop-shadow pt-1">
+                    Welches Bild passt zu der Plusaufgabe?
+                </p>
+            </div>
+
+            <!-- PICTURE OPTIONS (3 HUGE CARDS: TELLER LEFT | HAND RIGHT) -->
+            <div id="pictureOptionsGrid" class="w-full grid grid-cols-1 md:grid-cols-3 gap-4 sm:gap-6 pt-1">
+                <!-- Cards generated dynamically -->
+            </div>
+
+        </section>
+
+    </main>
+
+    <!-- FOOTER: CURRENT CODE DISPLAY -->
+    <footer class="bg-emerald-950 text-emerald-200 text-xs py-2 px-4 text-center border-t border-amber-500/30 flex justify-center items-center space-x-2 relative z-20">
+        <span>Dein Speicher-Code:</span>
+        <span id="currentCodeText" class="font-black text-amber-300 select-all text-sm">M-XXXX</span>
+        <button id="footerCopyBtn" onclick="handleFooterCopy()" class="bg-emerald-900 hover:bg-emerald-800 text-amber-300 text-[11px] font-bold px-2.5 py-1 rounded-lg border border-amber-400/40 ml-1 active:scale-95 transition-transform" title="Code kopieren">
+            📋 Kopieren
+        </button>
+    </footer>
+
+    <!-- ======================================================== -->
+    <!-- MODAL 1: SCHATZKISTE                                     -->
+    <!-- ======================================================== -->
+    <div id="chestModal" class="fixed inset-0 bg-slate-950/90 hidden pointer-events-none items-center justify-center z-50 p-4">
+        <div class="bg-gradient-to-b from-emerald-900 to-emerald-950 border-4 border-amber-400/80 rounded-3xl p-6 max-w-sm w-full flex flex-col items-center text-center space-y-4 shadow-2xl relative">
+            <h2 class="text-3xl font-black text-amber-300 drop-shadow">Level geschafft! 🎉</h2>
+            <p class="text-emerald-100 font-bold text-sm">Du hast dir eine Baumhaus-Schatztruhe verdient! Tippe darauf:</p>
+
+            <button id="openChestBtn" onclick="openChest()" class="text-8xl my-3 hover:scale-110 transition-transform active:scale-95 focus:outline-none filter drop-shadow-[0_10px_20px_rgba(0,0,0,0.6)]">
+                🎁
+            </button>
+
+            <div id="trophyResult" class="hidden flex-col items-center space-y-3 bg-amber-400/20 border-2 border-amber-400 p-4 rounded-2xl w-full shadow-inner">
+                <span id="revealedTrophyIcon" class="text-6xl animate-bounce-gentle">🏆</span>
+                <span id="revealedTrophyTitle" class="text-xl font-black text-amber-300">Neuer Pokal!</span>
+                <p id="revealedTrophyDesc" class="text-xs text-emerald-100 font-bold">Trophäe erhalten</p>
+
+                <div class="w-full bg-slate-900 border border-amber-400/60 rounded-xl p-2.5 mt-2 flex justify-between items-center space-x-2">
+                    <div class="text-left">
+                        <div class="text-[10px] text-amber-200 font-bold uppercase">Speicher-Code:</div>
+                        <div id="chestSaveCode" class="text-lg font-black text-amber-300">M-XXXX</div>
+                    </div>
+                    <button id="chestCopyCodeBtn" onclick="handleChestCopy()" class="bg-amber-400 hover:bg-amber-300 text-slate-950 font-black text-xs px-3 py-2 rounded-lg transition-transform active:scale-95 flex items-center space-x-1 shadow">
+                        <span>📋</span>
+                        <span id="chestCopyBtnText">Kopieren</span>
+                    </button>
+                </div>
+            </div>
+
+            <button id="closeChestBtn" onclick="handleCloseChest()" class="hidden w-full py-3.5 bg-amber-400 hover:bg-amber-300 text-slate-950 font-black text-lg rounded-2xl shadow-xl transition-all border-b-4 border-amber-600 active:scale-95">
+                Nächstes Level ▶
+            </button>
+        </div>
+    </div>
+
+    <!-- ======================================================== -->
+    <!-- MODAL 2: PAUSE / SAVE CODE MODAL                         -->
+    <!-- ======================================================== -->
+    <div id="saveModal" class="fixed inset-0 bg-slate-950/90 hidden pointer-events-none items-center justify-center z-50 p-4">
+        <div class="bg-gradient-to-b from-emerald-900 to-emerald-950 border-4 border-amber-400/80 rounded-3xl p-6 max-w-sm w-full flex flex-col items-center text-center space-y-4 shadow-2xl relative">
+            <h2 class="text-2xl sm:text-3xl font-black text-amber-300 drop-shadow">Baumhaus 🌳</h2>
+            <p class="text-emerald-100 text-sm font-bold">Kopiere deinen Code, um später genau hier weiterzuspielen:</p>
+            
+            <div class="bg-slate-900 border-2 border-amber-400/80 px-5 py-3 rounded-2xl shadow-inner w-full flex justify-between items-center">
+                <span id="modalSaveCode" class="text-2xl font-black text-amber-300 tracking-wider">M-XXXX</span>
+                <button id="modalCopyCodeBtn" onclick="handleModalCopy()" class="bg-amber-400 hover:bg-amber-300 text-slate-950 font-black text-xs px-3 py-2 rounded-xl active:scale-95 transition-transform flex items-center space-x-1 shadow">
+                    <span>📋</span>
+                    <span id="modalCopyBtnText">Code kopieren</span>
+                </button>
+            </div>
+
+            <div class="w-full flex flex-col space-y-2 pt-2">
+                <button id="closeSaveModalBtn" onclick="closeSaveModal()" class="w-full py-3 bg-amber-400 hover:bg-amber-300 text-slate-950 font-black text-base rounded-2xl shadow-lg active:scale-95 border-b-4 border-amber-600">
+                    Weiter spielen ▶
+                </button>
+                <button id="confirmHomeBtn" onclick="confirmGoHome()" class="w-full py-2.5 bg-emerald-900 hover:bg-emerald-800 text-amber-200 font-bold text-sm rounded-2xl border border-amber-500/30 active:scale-95">
+                    Zum Startbildschirm 🏠
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- ======================================================== -->
+    <!-- MODAL 3: TROPHY GALLERY                                  -->
+    <!-- ======================================================== -->
+    <div id="trophyGalleryModal" class="fixed inset-0 bg-slate-950/90 hidden pointer-events-none items-center justify-center z-50 p-4">
+        <div class="bg-gradient-to-b from-emerald-900 to-emerald-950 border-4 border-amber-500/60 rounded-3xl p-5 max-w-md w-full flex flex-col items-center text-center space-y-4 shadow-2xl relative max-h-[85vh]">
+            <div class="flex justify-between items-center w-full border-b border-amber-500/40 pb-3">
+                <h2 class="text-2xl font-black text-amber-300 flex items-center space-x-2 drop-shadow">
+                    <span>🏆</span>
+                    <span>Deine Trophäen</span>
+                </h2>
+                <button id="closeGalleryBtn" onclick="closeTrophyGallery()" class="text-slate-300 hover:text-white text-3xl font-black px-2">✕</button>
+            </div>
+
+            <div id="trophyListGrid" class="grid grid-cols-2 gap-3 w-full overflow-y-auto no-scrollbar p-1">
+            </div>
+        </div>
+    </div>
+
+    <!-- JAVASCRIPT APP LOGIC -->
+    <script>
+        const gameState = {
+            score: 0,
+            currentLevel: 1,
+            maxUnlockedLevel: 1,
+            taskIndexInLevel: 0,
+            attemptCount: 0,
+            isMuted: false,
+            unlockedTrophies: [],
+            currentTask: null,
+            levelTaskCount: 6,
+            isProcessingAnswer: false,
+            playerSalt: null,
+            levelTasks: [],
+            levelItems: []
+        };
+
+        // Eindeutige Symbole (ohne Blätter)
+        const itemTypes = [
+            { name: "Apfel", emoji: "🍎" },
+            { name: "Stern", emoji: "⭐" },
+            { name: "Marienkäfer", emoji: "🐞" },
+            { name: "Möhre", emoji: "🥕" },
+            { name: "Blume", emoji: "🌸" },
+            { name: "Auto", emoji: "🚗" },
+            { name: "Herz", emoji: "❤️" },
+            { name: "Stift", emoji: "✏️" },
+            { name: "Luftballon", emoji: "🎈" },
+            { name: "Eis", emoji: "🍦" },
+            { name: "Ente", emoji: "🦆" },
+            { name: "Schmetterling", emoji: "🦋" },
+            { name: "Hund", emoji: "🐶" },
+            { name: "Ball", emoji: "⚽" }
+        ];
+
+        const trophyPool = [
+            { id: "t1", title: "Baumhaus-Entdecker", icon: "🏡", desc: "Erste Aufgaben gelöst" },
+            { id: "t2", title: "Bilder-Profi", icon: "🖼️", desc: "Karten im Blitztempo erkannt" },
+            { id: "t3", title: "Lumis Bester", icon: "🦉", desc: "Treuer Begleiter im Baumhaus" },
+            { id: "t4", title: "Zahlen-Künstler", icon: "🎨", desc: "Aufgabe und Bild perfekt vereint" },
+            { id: "t5", title: "Baumhaus-König", icon: "👑", desc: "Alle Level gemeistert" }
+        ];
+
+        const synth = window.speechSynthesis;
+
+        function speakText(text) {
+            if (gameState.isMuted || !synth) return;
+            synth.cancel();
+            const utterance = new SpeechSynthesisUtterance(text);
+            utterance.lang = 'de-DE';
+            utterance.rate = 0.88;
+            synth.speak(utterance);
+        }
+
+        function getSaveCode() {
+            if (!gameState.playerSalt) {
+                gameState.playerSalt = Math.floor(Math.random() * 9000) + 1000;
+            }
+            const salt = gameState.playerSalt;
+            const lvl = gameState.maxUnlockedLevel;
+            const tr = gameState.unlockedTrophies.length;
+            const sc = Math.floor(gameState.score / 10);
+
+            const codeNum = (salt * 10000) + (lvl * 1000) + (tr * 100) + sc;
+            return `M-${codeNum}`;
+        }
+
+        function updateCodeDisplay() {
+            const code = getSaveCode();
+            document.getElementById('currentCodeText').innerText = code;
+            document.getElementById('modalSaveCode').innerText = code;
+            document.getElementById('chestSaveCode').innerText = code;
+        }
+
+        function copyCodeToClipboard(btnLabelElement) {
+            const code = getSaveCode();
+            const tempInput = document.createElement('input');
+            tempInput.value = code;
+            document.body.appendChild(tempInput);
+            tempInput.select();
+            try {
+                document.execCommand('copy');
+                if (btnLabelElement) {
+                    const origText = btnLabelElement.innerText;
+                    btnLabelElement.innerText = "Kopiert! ✓";
+                    setTimeout(() => {
+                        btnLabelElement.innerText = origText;
+                    }, 1500);
+                }
+            } catch (err) {
+                console.error("Copy failed", err);
+            }
+            document.body.removeChild(tempInput);
+        }
+
+        function loadFromCode(codeStr) {
+            if (!codeStr || !codeStr.startsWith("M-")) return false;
+            const num = parseInt(codeStr.replace("M-", ""));
+            if (isNaN(num)) return false;
+
+            const sc = num % 100;
+            const tr = Math.floor((num % 1000) / 100);
+            const lvl = Math.floor((num % 10000) / 1000);
+            const salt = Math.floor(num / 10000);
+
+            if (isNaN(lvl) || isNaN(tr) || isNaN(sc) || isNaN(salt)) return false;
+
+            gameState.maxUnlockedLevel = Math.max(1, lvl);
+            gameState.currentLevel = gameState.maxUnlockedLevel;
+            gameState.score = sc * 10;
+            gameState.unlockedTrophies = trophyPool.slice(0, Math.min(tr, trophyPool.length));
+            gameState.playerSalt = salt;
+
+            updateUI();
+            return true;
+        }
+
+        let startScreen, pathScreen, taskScreen, chestModal, saveModal, trophyGalleryModal;
+        let muteBtn, muteIcon, scoreText, trophyCountBadge;
+
+        function initElements() {
+            startScreen = document.getElementById('startScreen');
+            pathScreen = document.getElementById('pathScreen');
+            taskScreen = document.getElementById('taskScreen');
+            chestModal = document.getElementById('chestModal');
+            saveModal = document.getElementById('saveModal');
+            trophyGalleryModal = document.getElementById('trophyGalleryModal');
+
+            muteBtn = document.getElementById('muteBtn');
+            muteIcon = document.getElementById('muteIcon');
+            scoreText = document.getElementById('scoreText');
+            trophyCountBadge = document.getElementById('trophyCountBadge');
+        }
+
+        function openModal(modal) {
+            modal.classList.remove('hidden', 'pointer-events-none');
+            modal.classList.add('flex');
+        }
+
+        function closeModal(modal) {
+            modal.classList.add('hidden', 'pointer-events-none');
+            modal.classList.remove('flex');
+        }
+
+        function handleStartPlay() {
+            showScreen(pathScreen);
+            renderPath();
+        }
+
+        function handleHomeClick() {
+            if (!startScreen.classList.contains('hidden')) return;
+            updateCodeDisplay();
+            openModal(saveModal);
+        }
+
+        function closeSaveModal() {
+            closeModal(saveModal);
+        }
+
+        function confirmGoHome() {
+            closeModal(saveModal);
+            showScreen(startScreen);
+        }
+
+        function handleBackToPath() {
+            showScreen(pathScreen);
+            renderPath();
+        }
+
+        function handleLoadCode() {
+            const val = document.getElementById('codeInput').value.trim();
+            if (loadFromCode(val)) {
+                showScreen(pathScreen);
+                renderPath();
+            } else {
+                alert("Ungültiger Code. Bitte überprüfe den Code.");
+            }
+        }
+
+        function toggleMute() {
+            gameState.isMuted = !gameState.isMuted;
+            muteIcon.innerText = gameState.isMuted ? '🔇' : '🔊';
+            if (gameState.isMuted && synth) synth.cancel();
+        }
+
+        function readTaskStory() {
+            speakText("Welches Bild passt zu der Plusaufgabe?");
+        }
+
+        function handleModalCopy() {
+            copyCodeToClipboard(document.getElementById('modalCopyBtnText'));
+        }
+
+        function handleChestCopy() {
+            copyCodeToClipboard(document.getElementById('chestCopyBtnText'));
+        }
+
+        function handleFooterCopy() {
+            copyCodeToClipboard(document.getElementById('footerCopyBtn'));
+        }
+
+        function handleCloseChest() {
+            closeModal(chestModal);
+            
+            if (gameState.currentLevel >= gameState.maxUnlockedLevel) {
+                gameState.maxUnlockedLevel = gameState.currentLevel + 1;
+            }
+            gameState.currentLevel++;
+            gameState.taskIndexInLevel = 0;
+            
+            updateUI();
+            showScreen(pathScreen);
+            renderPath();
+        }
+
+        function closeTrophyGallery() {
+            closeModal(trophyGalleryModal);
+        }
+
+        function showScreen(screen) {
+            [startScreen, pathScreen, taskScreen].forEach(s => {
+                s.classList.add('hidden');
+                s.classList.remove('flex');
+            });
+            screen.classList.remove('hidden');
+            screen.classList.add('flex');
+        }
+
+        function updateUI() {
+            if (!scoreText) initElements();
+            scoreText.innerText = gameState.score;
+            trophyCountBadge.innerText = gameState.unlockedTrophies.length;
+            updateCodeDisplay();
+        }
+
+        function renderPath() {
+            const container = document.getElementById('pathContainer');
+            container.innerHTML = '';
+
+            const totalVisibleLevels = gameState.maxUnlockedLevel + 3;
+
+            for (let lvl = 1; lvl <= totalVisibleLevels; lvl++) {
+                const isUnlocked = lvl <= gameState.maxUnlockedLevel;
+                const isCurrent = lvl === gameState.maxUnlockedLevel;
+
+                const alignClasses = ['self-start ml-4 sm:ml-10', 'self-center', 'self-end mr-4 sm:mr-10'];
+                const alignment = alignClasses[(lvl - 1) % 3];
+
+                const nodeBtn = document.createElement('button');
+                nodeBtn.className = `flex items-center space-x-3 p-3.5 sm:p-5 rounded-3xl border-2 transition-transform active:scale-95 shadow-xl ${alignment}`;
+
+                if (isCurrent) {
+                    nodeBtn.className += ' bg-gradient-to-r from-amber-400 to-amber-500 border-amber-200 text-slate-950 font-black text-xl sm:text-2xl';
+                    nodeBtn.innerHTML = `
+                        <span class="text-4xl sm:text-5xl filter drop-shadow">🌳</span>
+                        <div class="text-left">
+                            <div>Level ${lvl}</div>
+                            <div class="text-xs font-black uppercase text-amber-950">Hier bist du!</div>
+                        </div>
+                    `;
+                    nodeBtn.onclick = () => startLevel(lvl);
+                } else if (isUnlocked) {
+                    nodeBtn.className += ' bg-emerald-900 border-amber-400 text-emerald-100 text-lg font-extrabold';
+                    nodeBtn.innerHTML = `
+                        <span class="text-3xl sm:text-4xl">⭐</span>
+                        <div class="text-left">
+                            <div>Level ${lvl}</div>
+                            <div class="text-xs font-bold text-amber-300">Offen</div>
+                        </div>
+                    `;
+                    nodeBtn.onclick = () => startLevel(lvl);
+                } else {
+                    nodeBtn.className += ' bg-emerald-950/60 border-amber-500/20 text-emerald-300/50 opacity-60 text-lg font-bold';
+                    nodeBtn.innerHTML = `
+                        <span class="text-3xl sm:text-4xl">🔒</span>
+                        <div class="text-left">
+                            <div>Level ${lvl}</div>
+                            <div class="text-xs">Gesperrt</div>
+                        </div>
+                    `;
+                }
+
+                container.appendChild(nodeBtn);
+
+                if (lvl < totalVisibleLevels) {
+                    const trail = document.createElement('div');
+                    trail.className = 'text-amber-400/60 text-base font-black my-[-10px]';
+                    trail.innerText = (lvl % 2 === 0) ? '🌲  🐾  🌲' : '✨  🍄  ✨';
+                    container.appendChild(trail);
+                }
+            }
+        }
+
+        // Generiert 6 einzigartige Aufgaben & 6 unterschiedliche Symbole für das Level
+        function generateLevelTasks() {
+            const maxSum = Math.min(10, 5 + Math.floor(gameState.currentLevel / 2));
+            const tasks = [];
+            const usedEquations = new Set();
+
+            while (tasks.length < gameState.levelTaskCount) {
+                const num1 = Math.floor(Math.random() * (maxSum - 1)) + 1;
+                const num2 = Math.floor(Math.random() * (maxSum - num1)) + 1;
+                const eqKey = `${num1}+${num2}`;
+
+                if (!usedEquations.has(eqKey)) {
+                    usedEquations.add(eqKey);
+                    tasks.push({ num1, num2, correctSum: num1 + num2 });
+                }
+            }
+            gameState.levelTasks = tasks;
+
+            // Wähle 6 zufällige, unterschiedliche Symbole für diesen 6er-Block aus
+            const shuffledItems = [...itemTypes].sort(() => Math.random() - 0.5);
+            gameState.levelItems = shuffledItems.slice(0, gameState.levelTaskCount);
+        }
+
+        function startLevel(lvl) {
+            gameState.currentLevel = lvl;
+            gameState.taskIndexInLevel = 0;
+            generateLevelTasks();
+            showScreen(taskScreen);
+            loadNextTask();
+        }
+
+        function loadNextTask() {
+            gameState.isProcessingAnswer = false;
+            gameState.attemptCount = 0;
+
+            if (gameState.taskIndexInLevel >= gameState.levelTaskCount) {
+                triggerChestModal();
+                return;
+            }
+
+            document.getElementById('levelLabel').innerText = `Level ${gameState.currentLevel} - Aufgabe ${gameState.taskIndexInLevel + 1}/${gameState.levelTaskCount}`;
+            const dotsContainer = document.getElementById('taskProgressDots');
+            dotsContainer.innerHTML = '';
+            for (let i = 0; i < gameState.levelTaskCount; i++) {
+                const dot = document.createElement('span');
+                dot.className = `w-4 h-4 rounded-full ${i < gameState.taskIndexInLevel ? 'bg-amber-400 shadow' : 'bg-emerald-900 border border-amber-500/40'}`;
+                dotsContainer.appendChild(dot);
+            }
+
+            // Hole Aufgabe und Symbol für diesen Schritt
+            const task = gameState.levelTasks[gameState.taskIndexInLevel];
+            const item = gameState.levelItems[gameState.taskIndexInLevel];
+
+            document.getElementById('taskEquationText').innerText = `${task.num1} + ${task.num2} = ${task.correctSum}`;
+
+            gameState.currentTask = {
+                num1: task.num1,
+                num2: task.num2,
+                correctSum: task.correctSum,
+                item: item
+            };
+
+            speakText("Welches Bild passt zu der Plusaufgabe?");
+
+            renderPictureOptions(task.num1, task.num2, item);
+        }
+
+        function createCardElement(n1, n2, itemEmoji, isCorrect) {
+            const cardBtn = document.createElement('button');
+            cardBtn.className = 'w-full bg-white border-4 border-amber-400 hover:border-amber-500 rounded-3xl p-3 sm:p-4 shadow-2xl flex flex-col items-center justify-between transition-transform active:scale-95 cursor-pointer';
+
+            const cardContainer = document.createElement('div');
+            cardContainer.className = 'w-full grid grid-cols-2 gap-3 bg-slate-100 border-4 border-slate-300 rounded-2xl p-2 sm:p-3 items-center';
+
+            let plateItemsHTML = '';
+            for (let i = 0; i < n1; i++) {
+                plateItemsHTML += `<span class="transform hover:scale-110 transition-transform">${itemEmoji}</span>`;
+            }
+
+            let handItemsHTML = '';
+            for (let i = 0; i < n2; i++) {
+                handItemsHTML += `<span class="transform hover:scale-110 transition-transform">${itemEmoji}</span>`;
+            }
+
+            const plateBox = document.createElement('div');
+            plateBox.className = 'flex flex-col items-center justify-center p-2 bg-sky-100/70 rounded-2xl border-2 border-sky-300 h-full relative shadow-inner';
+            plateBox.innerHTML = `
+                <div class="real-plate w-full min-h-[160px] sm:min-h-[180px] rounded-full flex flex-wrap justify-center items-center gap-2 p-4 text-3xl sm:text-4xl relative">
+                    ${plateItemsHTML}
+                </div>
+            `;
+
+            const handBox = document.createElement('div');
+            handBox.className = 'flex flex-col items-center justify-center p-2 bg-amber-100/70 rounded-2xl border-2 border-amber-300 h-full relative shadow-inner';
+            handBox.innerHTML = `
+                <div class="real-hand-bg w-full min-h-[160px] sm:min-h-[180px] rounded-3xl flex flex-wrap justify-center items-center gap-2 p-4 text-3xl sm:text-4xl relative">
+                    <div class="absolute bottom-1 right-2 text-2xl font-black text-amber-900/40 pointer-events-none select-none">🖐️</div>
+                    ${handItemsHTML}
+                </div>
+            `;
+
+            cardContainer.appendChild(plateBox);
+            cardContainer.appendChild(handBox);
+            cardBtn.appendChild(cardContainer);
+
+            cardBtn.onclick = () => handleAnswerSelect(isCorrect, cardBtn);
+
+            return cardBtn;
+        }
+
+        function renderPictureOptions(correct1, correct2, item) {
+            const container = document.getElementById('pictureOptionsGrid');
+            container.innerHTML = '';
+
+            const optionsData = [
+                { n1: correct1, n2: correct2, isCorrect: true }
+            ];
+
+            while (optionsData.length < 3) {
+                let fake1 = Math.floor(Math.random() * 5) + 1;
+                let fake2 = Math.floor(Math.random() * 5) + 1;
+
+                const exists = optionsData.some(opt => opt.n1 === fake1 && opt.n2 === fake2);
+                if (!exists && !(fake1 === correct1 && fake2 === correct2)) {
+                    optionsData.push({ n1: fake1, n2: fake2, isCorrect: false });
+                }
+            }
+
+            optionsData.sort(() => Math.random() - 0.5);
+
+            optionsData.forEach(opt => {
+                const cardEl = createCardElement(opt.n1, opt.n2, item.emoji, opt.isCorrect);
+                container.appendChild(cardEl);
+            });
+        }
+
+        function handleAnswerSelect(isCorrect, btnElement) {
+            if (gameState.isProcessingAnswer) return;
+
+            gameState.attemptCount++;
+
+            if (isCorrect) {
+                gameState.isProcessingAnswer = true;
+                btnElement.className = 'w-full bg-emerald-500 border-4 border-emerald-300 rounded-3xl p-3 sm:p-4 shadow-2xl transition-all scale-105 flex flex-col items-center justify-between cursor-pointer';
+                
+                let earnedPoints = 0;
+                if (gameState.attemptCount === 1) {
+                    earnedPoints = 10;
+                    speakText("Richtig! Plus 10 Punkte!");
+                } else if (gameState.attemptCount === 2) {
+                    earnedPoints = 5;
+                    speakText("Klasse! Plus 5 Punkte!");
+                } else {
+                    earnedPoints = 0;
+                    speakText("Richtig!");
+                }
+
+                confetti({
+                    particleCount: 50,
+                    spread: 80,
+                    origin: { y: 0.7 }
+                });
+
+                gameState.score += earnedPoints;
+                gameState.taskIndexInLevel++;
+                updateUI();
+
+                setTimeout(() => {
+                    loadNextTask();
+                }, 1100);
+            } else {
+                btnElement.className = 'w-full bg-rose-600 border-4 border-rose-300 rounded-3xl p-3 sm:p-4 shadow-2xl transition-all animate-shake flex flex-col items-center justify-between cursor-pointer';
+                speakText("Probiere es noch einmal!");
+
+                setTimeout(() => {
+                    btnElement.className = 'w-full bg-white border-4 border-amber-400 hover:border-amber-500 rounded-3xl p-3 sm:p-4 shadow-xl flex flex-col items-center justify-between transition-transform active:scale-95 cursor-pointer';
+                }, 750);
+            }
+        }
+
+        function triggerChestModal() {
+            openModal(chestModal);
+
+            const openBtn = document.getElementById('openChestBtn');
+            const resultDiv = document.getElementById('trophyResult');
+            const closeBtn = document.getElementById('closeChestBtn');
+
+            openBtn.innerText = '🎁';
+            openBtn.classList.remove('hidden');
+            openBtn.classList.add('animate-bounce-gentle');
+            resultDiv.classList.add('hidden');
+            resultDiv.classList.remove('flex');
+            closeBtn.classList.add('hidden');
+
+            updateCodeDisplay();
+            speakText("Glückwunsch! Du hast das Level geschafft. Öffne deine Baumhausschatztruhe!");
+        }
+
+        function openChest() {
+            const openBtn = document.getElementById('openChestBtn');
+            openBtn.innerText = '🧰';
+            openBtn.classList.add('animate-shake');
+
+            confetti({
+                particleCount: 120,
+                spread: 100,
+                origin: { y: 0.5 }
+            });
+
+            setTimeout(() => {
+                openBtn.innerText = '✨';
+                openBtn.classList.remove('animate-shake');
+
+                const trophy = trophyPool[(gameState.unlockedTrophies.length) % trophyPool.length];
+
+                if (!gameState.unlockedTrophies.some(t => t.id === trophy.id)) {
+                    gameState.unlockedTrophies.push(trophy);
+                }
+
+                document.getElementById('revealedTrophyIcon').innerText = trophy.icon;
+                document.getElementById('revealedTrophyTitle').innerText = trophy.title;
+                document.getElementById('revealedTrophyDesc').innerText = trophy.desc;
+
+                document.getElementById('trophyResult').classList.remove('hidden');
+                document.getElementById('trophyResult').classList.add('flex');
+                document.getElementById('closeChestBtn').classList.remove('hidden');
+
+                updateCodeDisplay();
+                speakText(`Du hast eine Trophäe erhalten: ${trophy.title}!`);
+                updateUI();
+            }, 600);
+        }
+
+        function openTrophyGallery() {
+            const grid = document.getElementById('trophyListGrid');
+            grid.innerHTML = '';
+
+            trophyPool.forEach(trophy => {
+                const isUnlocked = gameState.unlockedTrophies.some(t => t.id === trophy.id);
+                const card = document.createElement('div');
+                card.className = `p-3.5 rounded-2xl border-2 flex flex-col items-center text-center space-y-1 shadow ${isUnlocked ? 'bg-amber-100 border-amber-400 text-slate-900' : 'bg-emerald-950 border-amber-500/20 text-emerald-300/40'}`;
+
+                card.innerHTML = `
+                    <span class="text-4xl filter drop-shadow">${isUnlocked ? trophy.icon : '🔒'}</span>
+                    <span class="font-black text-xs sm:text-sm ${isUnlocked ? 'text-slate-900' : ''}">${trophy.title}</span>
+                    <span class="text-[10px] font-bold ${isUnlocked ? 'text-amber-800' : ''}">${isUnlocked ? trophy.desc : 'Noch verschlossen'}</span>
+                `;
+                grid.appendChild(card);
+            });
+
+            openModal(trophyGalleryModal);
+        }
+
+        window.addEventListener('DOMContentLoaded', () => {
+            initElements();
+            updateUI();
+        });
+        initElements();
+        updateUI();
+    </script>
+</body>
+</html>
